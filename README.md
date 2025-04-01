@@ -29,6 +29,12 @@ This script allows you to **easily download all images** from the National Galle
 chmod +x download_dataset.sh
 ./download_dataset.sh
 ```
+### **Manual Download**
+```sh
+pip install pandas requests tqdm
+python download_dataset.py
+```
+
 ## Additional usage guidelines
 
 ### Images and media files are not included in the dataset.
