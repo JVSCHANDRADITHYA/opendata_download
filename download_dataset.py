@@ -1,48 +1,61 @@
-import os
 import pandas as pd
 import requests
-from tqdm import tqdm
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
-# Set default folder
 DEFAULT_SAVE_FOLDER = os.path.join(os.getcwd(), "NGA_Dataset")
+os.makedirs(DEFAULT_SAVE_FOLDER, exist_ok=True)
+log_file = os.path.join(DEFAULT_SAVE_FOLDER, "download_log.txt")
+log_lock = Lock()  # To prevent race conditions in logging
 
-def convert_iiif_to_jpg(iiif_url):
-    """Convert IIIF API URL to a direct image download URL."""
-    return iiif_url + "/full/full/0/default.jpg"
+# Logging function (thread-safe)
+def write_log(message):
+    with log_lock:
+        with open(log_file, "a") as log:
+            log.write(message + "\n")
 
-def download_image(url, save_folder):
-    """Download an image from a URL and save it to the specified folder."""
+# Download function (run in parallel)
+def download_image(row):
+    base_url = row["iiifurl"]
+    uuid = row["uuid"]
+    image_url = f"{base_url}/full/full/0/default.jpg"
+    file_name = f"{uuid}.jpg"
+    file_path = os.path.join(DEFAULT_SAVE_FOLDER, file_name)
+
     try:
-        response = requests.get(url, stream=True)
+        response = requests.get(image_url, stream=True, timeout=15)
+
         if response.status_code == 200:
-            file_name = url.split("/")[-3] + ".jpg"  # Extract unique ID
-            file_path = os.path.join(save_folder, file_name)
-            with open(file_path, 'wb') as file:
+            with open(file_path, "wb") as file:
                 for chunk in response.iter_content(1024):
-                    file.write(chunk)
-            return True
+                    if chunk:
+                        file.write(chunk)
+            print(f"Downloaded: {file_name}")
+            write_log(f"SUCCESS: {file_name} | URL: {image_url}")
+        else:
+            print(f"FAILED (HTTP {response.status_code}): {file_name}")
+            write_log(f"FAILURE (HTTP {response.status_code}): {file_name} | URL: {image_url}")
+
     except Exception as e:
-        print(f"Error downloading {url}: {e}")
-    return False
+        print(f"ERROR: {file_name} | {e}")
+        write_log(f"ERROR: {file_name} | URL: {image_url} | Exception: {e}")
 
-def download_dataset(csv_path, save_folder=DEFAULT_SAVE_FOLDER):
-    """Download all images from the dataset CSV file."""
-    os.makedirs(save_folder, exist_ok=True)
-    df = pd.read_csv(csv_path)
+def download_dataset(csv_path, max_threads=8):
+    data = pd.read_csv(csv_path)
+    data = data.dropna(subset=["iiifurl"])
 
-    if 'iiifurl' not in df.columns:
-        print("Error: 'iiifurl' column not found in CSV.")
-        return
+    write_log("=" * 60)
+    write_log("New Download Session Started")
+    write_log("=" * 60)
 
-    image_urls = df['iiifurl'].dropna().apply(convert_iiif_to_jpg).tolist()
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = [executor.submit(download_image, row) for _, row in data.iterrows()]
+        for future in as_completed(futures):
+            pass  # We don't need to gather results, everything is logged inside threads
 
-    print(f"Starting download of {len(image_urls)} images...")
-    for url in tqdm(image_urls):
-        download_image(url, save_folder)
-
-    print(f"✅ All images downloaded to: {save_folder}")
+    print("Download complete!")
 
 if __name__ == "__main__":
     csv_path = input("Enter the path to published_images.csv: ").strip()
-    save_folder = input(f"Enter save location (default: {DEFAULT_SAVE_FOLDER}): ").strip() or DEFAULT_SAVE_FOLDER
-    download_dataset(csv_path, save_folder)
+    download_dataset(csv_path)
