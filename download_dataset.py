@@ -19,7 +19,7 @@ def write_log(message):
 def download_image(row):
     base_url = row["iiifurl"]
     uuid = row["uuid"]
-    image_url = f"{base_url}/full/full/0/default.jpg"
+    image_url = f"{base_url}/full/full/360/default.jpg" # few images are partially returned if 360 is replaced with a zero
     file_name = f"{uuid}.jpg"
     file_path = os.path.join(DEFAULT_SAVE_FOLDER, file_name)
 
