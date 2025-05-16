@@ -43,7 +43,7 @@ While links and references to images and other media (such as audio and video fi
 
 ### Our collection data is in constant flux.
 
-Our collection management is a process in continuous motion and therefore the dataset released through this open data program may not be entirely complete, correct, or up to date. This dataset is provided “as is”, is updated frequently (usually once a day), and should be used at your own risk. The National Gallery of Art makes no representations or warranties of any kind. If you notice erroneous data in our public dataset, please [let us know](https://www.nga.gov/contact-us/ask-a-question.html).
+Our collection management is a process in continuous motion and therefore the dataset released through this open data program may not be entirely complete, correct, or up to date. This dataset is provided “as is”, is updated frequently (usually once a day), and should be used at your own risk. The National Gallery of Art makes no representations or warranties of any kind. If you notice erroneous data in our public dataset, please [let us know](https://www.nga.gov/contact-us.html).
 
 ### Why are Wikidata Identifiers included in this dataset?
 
